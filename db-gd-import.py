@@ -13,13 +13,18 @@ with open(argv[2]) as scene_file:
 arm = src['armature'][0]
 root = arm['bone'][0]['name']
 
-bones = {}
+bones = {'root':{'parent':root}}
 for bone_i,bone in enumerate(arm['bone']):
     if bone_i == 0:
         continue
     bones[bone['name']] = bone
     print(bone)        
-    scene += f'[node name="{bone['name']}" type="Node2D" parent="{'.' if bone['parent'] == root else bone['parent']}"]\n'
+    bone_parent = bone['parent']
+    bone_parent_full = bone['parent']
+    while bones[bone_parent]['parent']!= root:
+        bone_parent = bones[bone_parent]['parent']
+        bone_parent_full = f'{bone_parent}/{bone_parent_full}'
+    scene += f'[node name="{bone['name']}" type="Node2D" parent="{'.' if bone_parent_full == root else bone_parent_full}"]\n'
     scene += f'position = Vector2({bone['transform']['x'] if 'x' in bone['transform'].keys() else 0}, {bone['transform']['y']})\n'
     scene += f'rotation = {round(math.radians(bone['transform']['skX']-0), 8)}\n\n'
 
