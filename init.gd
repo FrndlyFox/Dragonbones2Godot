@@ -4,7 +4,7 @@ extends EditorPlugin
 var dock
 
 func _enter_tree() -> void:
-	dock = preload("res://addons/db-import/dock.tscn").instantiate()
+	dock = preload("res://addons/Dragonbones2Godot/dock.tscn").instantiate()
 	var picker = EditorResourcePicker.new()
 	dock.get_node("VBoxContainer/ModelSelector").add_child(picker)
 	picker.name = "EditorResourcePicker"
