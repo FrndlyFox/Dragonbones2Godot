@@ -25,18 +25,28 @@ func process_import(res: Resource) -> void:
 	var root = Node2D.new()
 
 	for src_arm in src.armature:
-		var arm = Node2D.new()
+		var arm = Skeleton2D.new()
 		arm.name = src_arm.name
 		root.add_child(arm)
 		arm.owner = root
-
 		var src_root = src_arm.bone[0].name
+
+		var ik = {}
+		if src_arm.has("ik"):
+			for bone in src_arm.ik:
+				ik[bone.target] = bone
+
 		var bones = {}
 		bones[src_root] = {bone=arm}
 		var bones_names = []
 		for bone_i in range(1, len(src_arm.bone)):
 			var src_bone = src_arm.bone[bone_i]
-			var bone = Node2D.new()
+			var bone
+			if src_bone.name in ik:
+				bone = Node2D.new()
+				bone.editor_description = str(ik[src_bone.name])
+			else:
+				bone = Bone2D.new()
 			bone.name = src_bone.name
 			bone.position = Vector2(src_bone.transform.x if src_bone.transform.has("x") else 0, src_bone.transform.y if src_bone.transform.has("y") else 0)
 			bone.rotation_degrees = src_bone.transform.skX if src_bone.transform.has("skX") else 0
@@ -46,10 +56,11 @@ func process_import(res: Resource) -> void:
 		print(bones_names)
 		print(bones)
 		# bones_names.reverse()
-		for bname in bones_names:
-			bones[bones[bname].src.parent].bone.add_child(bones[bname].bone)
-		for bname in bones_names:
-			bones[bname].bone.owner = root
+		for bone_name in bones_names:
+			bones[bones[bone_name].src.parent].bone.add_child(bones[bone_name].bone)
+		# bones bones bones
+		for bone_name in bones_names:
+			bones[bone_name].bone.owner = root
 
 		var slot_names = {}
 		for slot in src_arm.slot:
@@ -66,8 +77,10 @@ func process_import(res: Resource) -> void:
 			# var texture = Texture2D.new()
 			slot.texture = load(res_path.substr(0, res_path.rfind("_"))+"_texture/"+src_slot.display[0].name+".png")
 			# print(res_path.substr(0, res_path.rfind("_"))+"_texture/"+src_slot.name+".png")
-
-
+		
+		# TODO#1 setting rest for bones
+		# for i in range(arm.get_bone_count()):
+			# arm.get_bone(i).set_rest(arm.get_bone(i).transform)
 
 
 
