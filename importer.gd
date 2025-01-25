@@ -3,29 +3,21 @@ extends Control
 
 @onready var picker = $VBoxContainer/ModelSelector/EditorResourcePicker
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
-
-
-func import_pressed() -> void:
+func _import_pressed() -> void:
 	if picker.edited_resource:
 		process_import(picker.edited_resource)
-
 
 func process_import(res: Resource) -> void:
 	var res_path = res.resource_path
 	var src = res.data
 
+	# make root
 	var src_arm = src.armature[0]
 	var arm = Node2D.new()
 	arm.name = src_arm.name
 	var src_root = src_arm.bone[0].name
 
+	# make bones
 	var bones = {}
 	bones[src_root] = {bone=arm}
 	var bones_list = []
@@ -39,12 +31,14 @@ func process_import(res: Resource) -> void:
 		bones_list.append(src_bone.name)
 		bones[src_bone.name] = {src = src_bone, bone = bone}
 	
+	# sort bones
 	for bone_name in bones_list:
 		bones[bones[bone_name].src.parent].bone.add_child(bones[bone_name].bone)
 	# bones bones bones
 	for bone_name in bones_list:
 		bones[bone_name].bone.owner = arm
 
+	# make slots (images)
 	var slot_names = {}
 	for slot in src_arm.slot:
 		slot_names[slot.name] = slot.parent
@@ -56,13 +50,13 @@ func process_import(res: Resource) -> void:
 		slot.rotation_degrees = src_slot.display[0].transform.skX if src_slot.display[0].transform.has("skX") else 0
 		bones[slot_names[src_slot.name]].bone.add_child(slot)
 		slot.owner = arm
-		
 		slot.texture = load(res_path.substr(0, res_path.rfind("_"))+"_texture/"+src_slot.display[0].name+".png")
 
 
 
 
 
+	# pack scene
 	var scene = PackedScene.new()
 	var result = scene.pack(arm)
 	if result == OK:

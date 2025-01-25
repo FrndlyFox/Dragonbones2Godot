@@ -30,4 +30,4 @@ text = "Model"
 layout_mode = 2
 text = "Import"
 
-[connection signal="pressed" from="VBoxContainer/ImportButton" to="." method="import_pressed"]
+[connection signal="pressed" from="VBoxContainer/ImportButton" to="." method="_import_pressed"]
