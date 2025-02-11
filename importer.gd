@@ -23,8 +23,7 @@ func process_import(res: Resource) -> void:
 	var bones_list = []
 	for bone_i in range(1, len(src_arm.bone)):
 		var src_bone = src_arm.bone[bone_i]
-		var bone
-		bone = Node2D.new()
+		var bone = Node2D.new()
 		bone.name = src_bone.name
 		bone.position = Vector2(src_bone.transform.x if src_bone.transform.has("x") else 0, src_bone.transform.y if src_bone.transform.has("y") else 0)
 		bone.rotation_degrees = src_bone.transform.skX if src_bone.transform.has("skX") else 0
@@ -52,6 +51,99 @@ func process_import(res: Resource) -> void:
 		slot.owner = arm
 		slot.texture = load(res_path.substr(0, res_path.rfind("_"))+"_texture/"+src_slot.display[0].name+".png")
 
+	# animations
+	var src_anims = src_arm.animation
+
+	# animation groups
+	var anim_groups = {}
+	for src_anim in src_anims:
+		if src_anim.name.begins_with("groups"):
+			for g in src_anim.name.split("="):
+				var group = Array(g.split("+"))
+				if group[0] == "groups":
+					continue
+				anim_groups[group[0]] = group
+				# anim_groups[group[0]].remove_at(0)
+	print(anim_groups)
+
+	var anim_groups_reversed = {}
+	for group in anim_groups:
+		for bone_i in range(anim_groups[group].size()):
+			if bone_i != 0:
+				anim_groups_reversed[anim_groups[group][bone_i]] = group
+	print("\n\nreversed:\n")
+	print(anim_groups_reversed)
+
+	var anim_root = Node2D.new()
+	anim_root.name = "Animations"
+	arm.add_child(anim_root)
+	anim_root.owner = arm
+
+	# create animation players
+	for group in anim_groups:
+		var animplayer = AnimationPlayer.new()
+		var animlib = AnimationLibrary.new()
+		animplayer.name = group
+		anim_root.add_child(animplayer)
+		animplayer.owner = arm
+		animplayer.add_animation_library("", animlib)
+		anim_groups[group][0] = animplayer
+	# print(anim_groups)
+
+
+	for src_anim in src_anims:
+		if src_anim.name.begins_with("groups"):
+			continue
+		print(src_anim.name)
+		for src_bone in src_anim.bone:
+			var bone_parent = src_bone.name
+			while not anim_groups_reversed.has(bone_parent):
+				bone_parent = bones[bone_parent].src.parent
+			var group = anim_groups_reversed[bone_parent]
+			var animlib = anim_groups[group][0].get_animation_library("")
+			if not animlib.has_animation("RESET"):
+				animlib.add_animation("RESET", Animation.new())
+
+			var anim
+			if animlib.has_animation(src_anim.name):
+				anim = animlib.get_animation(src_anim.name)
+			else:
+				anim = Animation.new()
+				anim.set_length(src_anim.duration / src_arm.frameRate)
+				anim.set_step(1 / src_arm.frameRate)
+			print("|\t"+src_bone.name)
+
+			if src_bone.has("translateFrame"):
+				var track = anim.add_track(0)
+				var path = src_bone.name
+				bone_parent = src_bone.name
+				while not anim_groups_reversed.has(bone_parent):
+					bone_parent = bones[bone_parent].src.parent
+					path = bone_parent+"/"+path
+				path = "../"+path+":position"
+				print("|\t|\tt: "+path)
+				anim.track_set_path(track, path)
+				var time = 0
+				for frame in src_bone.translateFrame:
+					pass
+#TODO keyframes
+			if src_bone.has("rotateFrame"):
+				var track = anim.add_track(0)
+				var path = src_bone.name
+				bone_parent = src_bone.name
+				while not anim_groups_reversed.has(bone_parent):
+					bone_parent = bones[bone_parent].src.parent
+					path = bone_parent+"/"+path
+				path = "../"+path+":rotation"
+				print("|\t|\tr: "+path)
+				anim.track_set_path(track, path)
+				var time = 0
+				for frame in src_bone.rotateFrame:
+					pass
+				# print("|\t|\tframe")
+
+			animlib.add_animation(src_anim.name, anim)
+
 
 
 
@@ -65,3 +157,4 @@ func process_import(res: Resource) -> void:
 			push_error(error)
 		else:
 			print(res_path + " successfully imported")
+
