@@ -105,8 +105,10 @@ func process_import(res: Resource) -> void:
 				bone_parent = bones[bone_parent].src.parent
 			var group = anim_groups_reversed[bone_parent]
 			var animlib = anim_groups[group][0].get_animation_library("")
+			var reset
 			if not animlib.has_animation("RESET"):
 				animlib.add_animation("RESET", Animation.new())
+			reset = animlib.get_animation("RESET")
 
 			var anim
 			if animlib.has_animation(src_anim.name):
@@ -119,39 +121,53 @@ func process_import(res: Resource) -> void:
 					anim.set_loop_mode(1)
 			print("|\t"+src_bone.name)
 
-			#if src_bone.has("translateFrame"):
-				#var track = anim.add_track(0)
-				#var path = src_bone.name
-				#bone_parent = src_bone.name
-				#while not anim_groups_reversed.has(bone_parent):
-					#bone_parent = bones[bone_parent].src.parent
-					#path = bone_parent+"/"+path
-				#path = "../"+path+":position"
-				#print("|\t|\tt: "+path)
-				#var time = 0
-				#for frame in src_bone.translateFrame:
-					#pass
-					##anim.track_set_path(track, path+":x")
-					##anim.track_insert_key(track,time/src_arm.frameRate,frame.x if frame.has("x") else 0)
-##
-					##anim.track_set_path(track, path+":y")
-					##anim.track_insert_key(track,time/src_arm.frameRate,frame.y if frame.has("y") else 0)
-					##time += frame.duration if frame.has("duration") else 1
-#
-			#if src_bone.has("rotateFrame"):
-				#var track = anim.add_track(0)
-				#var path = src_bone.name
-				#bone_parent = src_bone.name
-				#while not anim_groups_reversed.has(bone_parent):
-					#bone_parent = bones[bone_parent].src.parent
-					#path = bone_parent+"/"+path
-				#path = "../"+path+":rotation"
-				#print("|\t|\tr: "+path)
-				#anim.track_set_path(track, path)
-				#var time = 0
-				#for frame in src_bone.rotateFrame:
-					#pass
-				## print("|\t|\tframe")
+			if src_bone.has("translateFrame"):
+				var path = src_bone.name
+				var def_pos = bones[src_bone.name].bone.position
+				bone_parent = src_bone.name
+				while not anim_groups_reversed.has(bone_parent):
+					bone_parent = bones[bone_parent].src.parent
+					path = bone_parent+"/"+path
+				path = "../"+path+":position"
+				# print("|\t|\tt: "+path)
+				var track = anim.add_track(0)
+				anim.track_set_path(track, path)
+				if reset.find_track(path, 0) < 0:
+					var reset_track = reset.add_track(0)
+					reset.track_set_path(reset_track, path)
+					reset.track_insert_key(reset_track,0,def_pos)
+				var time = 0
+				for frame in src_bone.translateFrame:
+					var new_pos = def_pos
+					if frame.has("x"):
+						new_pos.x += frame.x
+					if frame.has("y"):
+						new_pos.y += frame.y
+					anim.track_insert_key(track,time/src_arm.frameRate,new_pos)
+					time += frame.duration if frame.has("duration") else 1
+
+			if src_bone.has("rotateFrame"):
+				var path = src_bone.name
+				var def_rot = bones[src_bone.name].bone.rotation
+				bone_parent = src_bone.name
+				while not anim_groups_reversed.has(bone_parent):
+					bone_parent = bones[bone_parent].src.parent
+					path = bone_parent+"/"+path
+				path = "../"+path+":rotation"
+				# print("|\t|\tt: "+path)
+				var track = anim.add_track(0)
+				anim.track_set_path(track, path)
+				if reset.find_track(path, 0) < 0:
+					var reset_track = reset.add_track(0)
+					reset.track_set_path(reset_track, path)
+					reset.track_insert_key(reset_track,0,def_rot)
+				var time = 0
+				for frame in src_bone.rotateFrame:
+					var new_rot = def_rot
+					if frame.has("rotate"):
+						new_rot += deg_to_rad(frame.rotate)
+					anim.track_insert_key(track,time/src_arm.frameRate,new_rot)
+					time += frame.duration if frame.has("duration") else 1
 
 			animlib.add_animation(src_anim.name, anim)
 
