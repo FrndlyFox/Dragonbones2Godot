@@ -1,6 +1,10 @@
 @tool
 extends Control
 
+# ROADMAP
+# keyframes
+# curves
+
 @onready var picker = $VBoxContainer/ModelSelector/EditorResourcePicker
 
 func _import_pressed() -> void:
@@ -111,36 +115,43 @@ func process_import(res: Resource) -> void:
 				anim = Animation.new()
 				anim.set_length(src_anim.duration / src_arm.frameRate)
 				anim.set_step(1 / src_arm.frameRate)
+				if src_anim.playTimes == 0:
+					anim.set_loop_mode(1)
 			print("|\t"+src_bone.name)
 
-			if src_bone.has("translateFrame"):
-				var track = anim.add_track(0)
-				var path = src_bone.name
-				bone_parent = src_bone.name
-				while not anim_groups_reversed.has(bone_parent):
-					bone_parent = bones[bone_parent].src.parent
-					path = bone_parent+"/"+path
-				path = "../"+path+":position"
-				print("|\t|\tt: "+path)
-				anim.track_set_path(track, path)
-				var time = 0
-				for frame in src_bone.translateFrame:
-					pass
-#TODO keyframes
-			if src_bone.has("rotateFrame"):
-				var track = anim.add_track(0)
-				var path = src_bone.name
-				bone_parent = src_bone.name
-				while not anim_groups_reversed.has(bone_parent):
-					bone_parent = bones[bone_parent].src.parent
-					path = bone_parent+"/"+path
-				path = "../"+path+":rotation"
-				print("|\t|\tr: "+path)
-				anim.track_set_path(track, path)
-				var time = 0
-				for frame in src_bone.rotateFrame:
-					pass
-				# print("|\t|\tframe")
+			#if src_bone.has("translateFrame"):
+				#var track = anim.add_track(0)
+				#var path = src_bone.name
+				#bone_parent = src_bone.name
+				#while not anim_groups_reversed.has(bone_parent):
+					#bone_parent = bones[bone_parent].src.parent
+					#path = bone_parent+"/"+path
+				#path = "../"+path+":position"
+				#print("|\t|\tt: "+path)
+				#var time = 0
+				#for frame in src_bone.translateFrame:
+					#pass
+					##anim.track_set_path(track, path+":x")
+					##anim.track_insert_key(track,time/src_arm.frameRate,frame.x if frame.has("x") else 0)
+##
+					##anim.track_set_path(track, path+":y")
+					##anim.track_insert_key(track,time/src_arm.frameRate,frame.y if frame.has("y") else 0)
+					##time += frame.duration if frame.has("duration") else 1
+#
+			#if src_bone.has("rotateFrame"):
+				#var track = anim.add_track(0)
+				#var path = src_bone.name
+				#bone_parent = src_bone.name
+				#while not anim_groups_reversed.has(bone_parent):
+					#bone_parent = bones[bone_parent].src.parent
+					#path = bone_parent+"/"+path
+				#path = "../"+path+":rotation"
+				#print("|\t|\tr: "+path)
+				#anim.track_set_path(track, path)
+				#var time = 0
+				#for frame in src_bone.rotateFrame:
+					#pass
+				## print("|\t|\tframe")
 
 			animlib.add_animation(src_anim.name, anim)
 
@@ -157,4 +168,3 @@ func process_import(res: Resource) -> void:
 			push_error(error)
 		else:
 			print(res_path + " successfully imported")
-
