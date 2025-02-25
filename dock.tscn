@@ -4,30 +4,66 @@
 
 [node name="Db2Gd" type="Control"]
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_right = -852.0
 grow_horizontal = 2
-grow_vertical = 2
 script = ExtResource("1_utlbb")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="Main" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_bottom = 85.0
 grow_horizontal = 2
-grow_vertical = 2
 
-[node name="ModelSelector" type="HBoxContainer" parent="VBoxContainer"]
+[node name="Properties" type="HBoxContainer" parent="Main"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBoxContainer/ModelSelector"]
+[node name="Labels" type="VBoxContainer" parent="Main/Properties"]
 layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Model" type="Label" parent="Main/Properties/Labels"]
+layout_mode = 2
+size_flags_vertical = 3
 text = "Model"
+vertical_alignment = 1
 
-[node name="ImportButton" type="Button" parent="VBoxContainer"]
+[node name="AtlasMode" type="Label" parent="Main/Properties/Labels"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Atlas"
+vertical_alignment = 1
+
+[node name="Atlas" type="Label" parent="Main/Properties/Labels"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+text = "Atlas texture"
+vertical_alignment = 1
+
+[node name="Properties" type="VBoxContainer" parent="Main/Properties"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Model" type="EditorResourcePicker" parent="Main/Properties/Properties"]
+layout_mode = 2
+base_type = "JSON"
+
+[node name="AtlasMode" type="CheckBox" parent="Main/Properties/Properties"]
+layout_mode = 2
+text = "Enable"
+
+[node name="Atlas" type="EditorResourcePicker" parent="Main/Properties/Properties"]
+visible = false
+layout_mode = 2
+base_type = "JSON"
+
+[node name="ImportButton" type="Button" parent="Main"]
 layout_mode = 2
 text = "Import"
 
-[connection signal="pressed" from="VBoxContainer/ImportButton" to="." method="_import_pressed"]
+[connection signal="toggled" from="Main/Properties/Properties/AtlasMode" to="." method="_atlas_mode_toggled"]
+[connection signal="pressed" from="Main/ImportButton" to="." method="_import_pressed"]
