@@ -2,7 +2,6 @@
 extends Control
 
 # ROADMAP
-# keyframes
 # curves
 
 @onready var picker = $VBoxContainer/ModelSelector/EditorResourcePicker
@@ -37,104 +36,60 @@ func process_import(res: Resource) -> void:
 	# sort bones
 	for bone_name in bones_list:
 		bones[bones[bone_name].src.parent].bone.add_child(bones[bone_name].bone)
-	# bones bones bones
-	for bone_name in bones_list:
 		bones[bone_name].bone.owner = arm
+	# bones bones bones
 
 	# make slots (images)
-	var slot_names = {}
-	for slot in src_arm.slot:
-		slot_names[slot.name] = slot.parent
+	var slots = {}
+	for slot_i in range(len(src_arm.slot)):
+		var slot = src_arm.slot[slot_i]
+		slots[slot.name] = {parent = slot.parent, z = slot_i}
 	for src_slot in src_arm.skin[0].slot:
 		var slot = Sprite2D.new()
 		slot.name = src_slot.name
 		slot.position = Vector2(src_slot.display[0].transform.x if src_slot.display[0].transform.has("x") else 0, 
 														src_slot.display[0].transform.y if src_slot.display[0].transform.has("y") else 0)
 		slot.rotation_degrees = src_slot.display[0].transform.skX if src_slot.display[0].transform.has("skX") else 0
-		bones[slot_names[src_slot.name]].bone.add_child(slot)
+		bones[slots[src_slot.name].parent].bone.add_child(slot)
 		slot.owner = arm
 		slot.texture = load(res_path.substr(0, res_path.rfind("_"))+"_texture/"+src_slot.display[0].name+".png")
+		slot.z_as_relative = false
+		slot.z_index = slots[src_slot.name].z
 
 	# animations
 	var src_anims = src_arm.animation
 
-	# animation groups
-	var anim_groups = {}
-	for src_anim in src_anims:
-		if src_anim.name.begins_with("groups"):
-			for g in src_anim.name.split("="):
-				var group = Array(g.split("+"))
-				if group[0] == "groups":
-					continue
-				anim_groups[group[0]] = group
-				# anim_groups[group[0]].remove_at(0)
-	print(anim_groups)
-
-	var anim_groups_reversed = {}
-	for group in anim_groups:
-		for bone_i in range(anim_groups[group].size()):
-			if bone_i != 0:
-				anim_groups_reversed[anim_groups[group][bone_i]] = group
-	print("\n\nreversed:\n")
-	print(anim_groups_reversed)
-
-	var anim_root = Node2D.new()
-	anim_root.name = "Animations"
-	arm.add_child(anim_root)
-	anim_root.owner = arm
-
-	# create animation players
-	for group in anim_groups:
-		var animplayer = AnimationPlayer.new()
-		var animlib = AnimationLibrary.new()
-		animplayer.name = group
-		anim_root.add_child(animplayer)
-		animplayer.owner = arm
-		animplayer.add_animation_library("", animlib)
-		anim_groups[group][0] = animplayer
-	# print(anim_groups)
-
+	var animplayer = AnimationPlayer.new()
+	var animlib = AnimationLibrary.new()
+	animlib.add_animation("RESET", Animation.new())
+	animplayer.add_animation_library("", animlib)
+	animplayer.name = "AnimationPlayer"
+	arm.add_child(animplayer)
+	animplayer.owner = arm
 
 	for src_anim in src_anims:
-		if src_anim.name.begins_with("groups"):
-			continue
 		print(src_anim.name)
+		var reset = animlib.get_animation("RESET")
+		var anim = Animation.new()
+		anim.set_length(src_anim.duration / src_arm.frameRate)
+		anim.set_step(1 / src_arm.frameRate)
+		if src_anim.playTimes == 0:
+			anim.set_loop_mode(1)
 		for src_bone in src_anim.bone:
+			var path = src_bone.name
 			var bone_parent = src_bone.name
-			while not anim_groups_reversed.has(bone_parent):
+			while bones[bone_parent].src.parent != src_root:
 				bone_parent = bones[bone_parent].src.parent
-			var group = anim_groups_reversed[bone_parent]
-			var animlib = anim_groups[group][0].get_animation_library("")
-			var reset
-			if not animlib.has_animation("RESET"):
-				animlib.add_animation("RESET", Animation.new())
-			reset = animlib.get_animation("RESET")
-
-			var anim
-			if animlib.has_animation(src_anim.name):
-				anim = animlib.get_animation(src_anim.name)
-			else:
-				anim = Animation.new()
-				anim.set_length(src_anim.duration / src_arm.frameRate)
-				anim.set_step(1 / src_arm.frameRate)
-				if src_anim.playTimes == 0:
-					anim.set_loop_mode(1)
-			print("|\t"+src_bone.name)
+				path = bone_parent+"/"+path
+			print("\t" + src_bone.name + ":\t" + path)
 
 			if src_bone.has("translateFrame"):
-				var path = src_bone.name
 				var def_pos = bones[src_bone.name].bone.position
-				bone_parent = src_bone.name
-				while not anim_groups_reversed.has(bone_parent):
-					bone_parent = bones[bone_parent].src.parent
-					path = bone_parent+"/"+path
-				path = "../"+path+":position"
-				# print("|\t|\tt: "+path)
 				var track = anim.add_track(0)
-				anim.track_set_path(track, path)
-				if reset.find_track(path, 0) < 0:
+				anim.track_set_path(track, path+":position")
+				if reset.find_track(path+":position", 0) < 0:
 					var reset_track = reset.add_track(0)
-					reset.track_set_path(reset_track, path)
+					reset.track_set_path(reset_track, path+":position")
 					reset.track_insert_key(reset_track,0,def_pos)
 				var time = 0
 				for frame in src_bone.translateFrame:
@@ -147,19 +102,12 @@ func process_import(res: Resource) -> void:
 					time += frame.duration if frame.has("duration") else 1
 
 			if src_bone.has("rotateFrame"):
-				var path = src_bone.name
 				var def_rot = bones[src_bone.name].bone.rotation
-				bone_parent = src_bone.name
-				while not anim_groups_reversed.has(bone_parent):
-					bone_parent = bones[bone_parent].src.parent
-					path = bone_parent+"/"+path
-				path = "../"+path+":rotation"
-				# print("|\t|\tt: "+path)
 				var track = anim.add_track(0)
-				anim.track_set_path(track, path)
-				if reset.find_track(path, 0) < 0:
+				anim.track_set_path(track, path+":rotation")
+				if reset.find_track(path+":rotation", 0) < 0:
 					var reset_track = reset.add_track(0)
-					reset.track_set_path(reset_track, path)
+					reset.track_set_path(reset_track, path+":rotation")
 					reset.track_insert_key(reset_track,0,def_rot)
 				var time = 0
 				for frame in src_bone.rotateFrame:
