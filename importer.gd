@@ -39,7 +39,9 @@ extends Control
 # 						name: String
 # 						pos: Vector2,
 # 						scl: Vector2,
-# 						rot: int
+# 						rot: int,
+# 						region: Rect2,
+# 						texture
 # 					}
 # 				]
 # 			}
@@ -119,7 +121,8 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 				var display = {name = model_display.name,
 											pos = Vector2(),
 											scl = Vector2(),
-											rot = 0, region = Rect2()}
+											rot = 0, region = Rect2(),
+											texture = null}
 				if model_display.has("transform"):
 					display.pos = Vector2(model_display.transform.x if model_display.transform.has("x") else 0,
 																model_display.transform.y if model_display.transform.has("y") else 0)
@@ -127,7 +130,10 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 																model_display.transform.scY if model_display.transform.has("scY") else 1)
 					display.rot = deg_to_rad(model_display.transform.skX) if model_display.transform.has("skX") else 0
 				if atlas_mode:
+					display.texture = load(atlas_path)
 					display.region = atlas_regions[model_display.name]
+				else:
+					display.texture = load(model_path.substr(0, model_path.rfind("_"))+"_texture/"+display.name+".png")
 
 				slot.displays.append(display)
 				skin.slots[model_slot.name] = slot
@@ -145,7 +151,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 		slot.z_as_relative = false
 		slot.z_index = model_slot.z
 		if atlas_mode:
-			slot.texture = load(atlas_path)
+			slot.texture = model_slot.displays[0].texture
 			slot.region_enabled = true
 		if model_slot.display_index >= 0:
 			var display = model_slot.displays[model_slot.display_index]
@@ -155,7 +161,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 			if atlas_mode:
 				slot.region_rect = atlas_regions[display.name]
 			else:
-				slot.texture = load(model_path.substr(0, model_path.rfind("_"))+"_texture/"+display.name+".png")
+				slot.texture = display.texture
 
 
 	# animations
@@ -228,8 +234,15 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 				anim.value_track_set_update_mode(scl_track,1)
 				var rot_track = anim.add_track(0)
 				anim.value_track_set_update_mode(rot_track,1)
-				var reg_track = anim.add_track(0)
-				anim.value_track_set_update_mode(reg_track,1)
+				var reg_track
+				var tex_track 
+				if atlas_mode:
+					reg_track = anim.add_track(0)
+					anim.value_track_set_update_mode(reg_track,1)
+				else:
+					tex_track = anim.add_track(0)
+					anim.value_track_set_update_mode(tex_track,1)
+
 				if not atlas_mode:
 					if reset.find_track(path+":texture", 0) < 0:
 						var reset_track = reset.add_track(0)
@@ -256,7 +269,8 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 						anim.track_set_path(reg_track, path+":region_rect")
 						anim.track_insert_key(reg_track,time/model_arm.frameRate,display.region if dis_index >= 0 else Rect2())
 					else:
-						pass
+						anim.track_set_path(tex_track, path+":texture")
+						anim.track_insert_key(tex_track,time/model_arm.frameRate,display.texture if dis_index >= 0 else null)
 					time += frame.duration if frame.has("duration") else 1
 
 
