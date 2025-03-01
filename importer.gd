@@ -4,14 +4,12 @@ extends Control
 # ROADMAP
 # curves
 
-# VARS REFERENCE
+# DATA STRUCTURE
 # bones = {
 # 	<name> = {
 # 		model: {},
 # 		bone: Node2D
 #		}
-# }
-# 	
 # }
 #
 # slots = {
@@ -71,13 +69,12 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 		atlas = atlas_res.data
 		atlas_path = model_path.get_base_dir()+"/"+atlas.imagePath
 
-	# make root
+# -- base nodes creation -------------------------------------------------------
 	var model_arm = model.armature[0]
 	var arm = Node2D.new()
 	arm.name = model.name
 	var model_root = model_arm.bone[0].name
 
-	# make bones
 	var bones = {}
 	bones[model_root] = {bone=arm}
 	var bones_list = []
@@ -90,13 +87,12 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 		bones_list.append(model_bone.name)
 		bones[model_bone.name] = {model = model_bone, bone = bone}
 	
-	# sort bones
 	for bone_name in bones_list:
 		bones[bones[bone_name].model.parent].bone.add_child(bones[bone_name].bone)
 		bones[bone_name].bone.owner = arm
 	# bones bones bones
 
-	# parse atlas regions, slots and skins
+# -- import data structure -----------------------------------------------------
 	var atlas_regions = {}
 	if atlas_mode:
 		for slot in atlas.SubTexture:
@@ -164,7 +160,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 				slot.texture = display.texture
 
 
-	# animations
+# -- animations ----------------------------------------------------------------
 	var animplayer = AnimationPlayer.new()
 	var animlib = AnimationLibrary.new()
 	animlib.add_animation("RESET", Animation.new())
@@ -183,7 +179,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 		if model_anim.playTimes == 0:
 			anim.set_loop_mode(1)
 
-#-- bones ---------------------------------------------------------------------
+# -- animations -- bones -------------------------------------------------------
 		for model_bone in (model_anim.bone if model_anim.has("bone") else []):
 			var path = String(arm.get_path_to(bones[model_bone.name].bone))
 			# print("\t" + model_bone.name + ":\t" + path)
@@ -222,7 +218,25 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 					anim.track_insert_key(track,time/model_arm.frameRate,new_rot)
 					time += frame.duration if frame.has("duration") else 1
 
-#-- slots ---------------------------------------------------------------------
+			if model_bone.has("scaleFrame"):
+				var def_scl = bones[model_bone.name].bone.scale
+				var track = anim.add_track(0)
+				anim.track_set_path(track, path+":scale")
+				if reset.find_track(path+":scale", 0) < 0:
+					var reset_track = reset.add_track(0)
+					reset.track_set_path(reset_track, path+":scale")
+					reset.track_insert_key(reset_track,0,def_scl)
+				var time = 0
+				for frame in model_bone.scaleFrame:
+					var new_scl = def_scl
+					if frame.has("x"):
+						new_scl.x *= frame.x
+					if frame.has("y"):
+						new_scl.y *= frame.y
+					anim.track_insert_key(track,time/model_arm.frameRate,new_scl)
+					time += frame.duration if frame.has("duration") else 1
+
+# -- animations -- slots -------------------------------------------------------
 		for model_slot in (model_anim.slot if model_anim.has("slot") else []):
 			var slot = skins[0].slots[model_slot.name]
 			var path = String(arm.get_path_to(slot.slot))
@@ -273,11 +287,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 						anim.track_insert_key(tex_track,time/model_arm.frameRate,display.texture if dis_index >= 0 else null)
 					time += frame.duration if frame.has("duration") else 1
 
-
-
-
-
-	# pack scene
+# -- pack scene ----------------------------------------------------------------
 	var scene = PackedScene.new()
 	var result = scene.pack(arm)
 	if result == OK:
