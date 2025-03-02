@@ -1,7 +1,8 @@
 @tool
 extends Control
 
-# ROADMAP
+# TODO
+# animation tracks clamp
 # curves
 
 # DATA STRUCTURE
@@ -82,8 +83,9 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 		var model_bone = model_arm.bone[bone_i]
 		var bone = Node2D.new()
 		bone.name = model_bone.name
-		bone.position = Vector2(model_bone.transform.x if model_bone.transform.has("x") else 0, model_bone.transform.y if model_bone.transform.has("y") else 0)
-		bone.rotation_degrees = model_bone.transform.skX if model_bone.transform.has("skX") else 0
+		if model_bone.has("transform"):
+			bone.position = Vector2(model_bone.transform.x if model_bone.transform.has("x") else 0, model_bone.transform.y if model_bone.transform.has("y") else 0)
+			bone.rotation_degrees = model_bone.transform.skX if model_bone.transform.has("skX") else 0
 		bones_list.append(model_bone.name)
 		bones[model_bone.name] = {model = model_bone, bone = bone}
 	
@@ -116,7 +118,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 			for model_display in model_slot.display:
 				var display = {name = model_display.name,
 											pos = Vector2(),
-											scl = Vector2(),
+											scl = Vector2.ONE,
 											rot = 0, region = Rect2(),
 											texture = null}
 				if model_display.has("transform"):
@@ -228,11 +230,8 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 					reset.track_insert_key(reset_track,0,def_scl)
 				var time = 0
 				for frame in model_bone.scaleFrame:
-					var new_scl = def_scl
-					if frame.has("x"):
-						new_scl.x *= frame.x
-					if frame.has("y"):
-						new_scl.y *= frame.y
+					var new_scl = Vector2(frame.x if frame.has("x") else 1,
+																frame.y if frame.has("y") else 1)
 					anim.track_insert_key(track,time/model_arm.frameRate,new_scl)
 					time += frame.duration if frame.has("duration") else 1
 
@@ -257,6 +256,18 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 					tex_track = anim.add_track(0)
 					anim.value_track_set_update_mode(tex_track,1)
 
+				if reset.find_track(path+":position", 0) < 0:
+						var reset_track = reset.add_track(0)
+						reset.track_set_path(reset_track, path+":position")
+						reset.track_insert_key(reset_track,0,slot.slot.position)
+				if reset.find_track(path+":rotation", 0) < 0:
+						var reset_track = reset.add_track(0)
+						reset.track_set_path(reset_track, path+":rotation")
+						reset.track_insert_key(reset_track,0,slot.slot.rotation)
+				if reset.find_track(path+":scale", 0) < 0:
+						var reset_track = reset.add_track(0)
+						reset.track_set_path(reset_track, path+":scale")
+						reset.track_insert_key(reset_track,0,slot.slot.scale)
 				if not atlas_mode:
 					if reset.find_track(path+":texture", 0) < 0:
 						var reset_track = reset.add_track(0)
@@ -278,7 +289,6 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 					anim.track_insert_key(scl_track,time/model_arm.frameRate,display.scl if dis_index >= 0 else Vector2(1,1))
 					anim.track_set_path(rot_track, path+":rotation")
 					anim.track_insert_key(rot_track,time/model_arm.frameRate,display.rot if dis_index >= 0 else 0)
-
 					if atlas_mode:
 						anim.track_set_path(reg_track, path+":region_rect")
 						anim.track_insert_key(reg_track,time/model_arm.frameRate,display.region if dis_index >= 0 else Rect2())
