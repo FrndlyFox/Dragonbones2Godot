@@ -36,6 +36,7 @@ extends Control
 # 				displays = [
 # 					{
 # 						name: String
+#						path: String,
 # 						pos: Vector2,
 # 						scl: Vector2,
 # 						rot: int,
@@ -117,6 +118,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 			slot.displays = []
 			for model_display in model_slot.display:
 				var display = {name = model_display.name,
+											path = model_display.path if model_display.has("path") else model_display.name,
 											pos = Vector2(),
 											scl = Vector2.ONE,
 											rot = 0, region = Rect2(),
@@ -131,7 +133,7 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 					display.texture = load(atlas_path)
 					display.region = atlas_regions[model_display.name]
 				else:
-					display.texture = load(model_path.substr(0, model_path.rfind("_"))+"_texture/"+display.name+".png")
+					display.texture = load(model_path.substr(0, model_path.rfind("_"))+"_texture/"+display.path+".png")
 
 				slot.displays.append(display)
 				skin.slots[model_slot.name] = slot
