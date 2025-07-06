@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bhcmi23ktcacv"]
 
-[ext_resource type="Script" path="res://addons/Dragonbones2Godot/importer.gd" id="1_utlbb"]
+[ext_resource type="Script" uid="uid://dvdje2a6qmmgy" path="res://addons/Dragonbones2Godot/importer.gd" id="1_utlbb"]
 
 [node name="Db2Gd" type="Control"]
 layout_mode = 3

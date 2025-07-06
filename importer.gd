@@ -306,4 +306,3 @@ func process_import(model_res: Resource, atlas_mode: bool = false, atlas_res: Re
 			push_error(error)
 		else:
 			print(model_path + " successfully imported")
-
